@@ -1,0 +1,338 @@
+/ {
+    aliases {
+        canopen-can = &fdcan1;
+        canopen-green-led = &canopen_run_led;
+        canopen-red-led = &canopen_err_led;
+    };
+    
+    leds: leds {
+        compatible = "gpio-leds";
+
+        canopen_run_led: canopen-run-led {
+            gpios = <&gpioa 6 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        };
+
+        canopen_err_led: canopen-err-led {
+            gpios = <&gpioa 7 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        };
+
+        break_light: break-light {
+            gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        };
+
+        rtd_sound: rtd-sound {
+            gpios = <&gpioc 8 (GPIO_ACTIVE_HIGH)>;
+        };
+    };
+
+    pwmleds: pwmleds {
+        compatible = "pwm-leds";
+
+        green_pwm_led {
+            status = "disabled";
+        };
+
+        display_pwm_led: display-pwm-led {
+            pwms = <&pwm3 2 PWM_MSEC(1) PWM_POLARITY_INVERTED>;
+        };
+    };
+
+    buttons: buttons {
+        compatible = "gpio-keys";
+        debounce-interval-ms = <20>;
+
+        accel_micro: accel-micro {
+            gpios = <&gpioc 9 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+            zephyr,code = <INPUT_KEY_A>;
+        };
+
+        break_micro: break-micro {
+            gpios = <&gpioc 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+            zephyr,code = <INPUT_KEY_B>;
+        };
+    };
+
+    susp_dive_r: susp-dive-r {
+        compatible = "res,zx";
+        io-channels = <&adc1 7>;
+        stroke = <50>;
+        status = "okay";
+    };
+
+    susp_roll_r: susp-roll-r {
+        compatible = "res,zx";
+        io-channels = <&adc1 8>;
+        stroke = <50>;
+        status = "okay";
+    };
+
+    break_press_f: break-press-f {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 1>;
+        full-scale = <1000>;
+        shunt-resistor = <100000>;
+        status = "okay";
+    };
+
+    break_press_r: break-press-r {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 2>;
+        full-scale = <1000>;
+        shunt-resistor = <100000>;
+        status = "okay";
+    };
+
+    wheel_speed_fl: wheel-speed-fl {
+        compatible = "hall-rpm";
+        gpios = <&gpiob 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        num-tooth = <20>;
+        status = "okay";
+    };
+
+    fstab {
+        compatible = "zephyr,fstab";
+
+        lfs1: lfs1 {
+            compatible = "zephyr,fstab,littlefs";
+            disk-access;
+            read-size = <512>;
+            prog-size = <512>;
+            cache-size = <512>;
+            lookahead-size = <32>;
+            block-cycles = <512>;
+            partition = <&storage_partition>;
+            mount-point = "/lfs1";
+        };
+    };
+};
+
+&clk_lse {
+    status = "okay";
+};
+
+&rcc {
+    apb1-prescaler = <4>;
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&dmamux1 {
+    status = "okay";
+};
+
+&rtc {
+    clocks = <&rcc STM32_CLOCK_BUS_APB1 0x00000400>,
+        <&rcc STM32_SRC_LSE RTC_SEL(1)>;
+
+    bbram: backup_regs {
+        compatible = "st,stm32-bbram";
+        st,backup-regs = <32>;
+        status = "okay";
+    };
+};
+
+&timers3 {
+    st,prescaler = <(170 - 1)>;
+    status = "okay";
+
+    pwm3: pwm {
+        pinctrl-0 = <&tim3_ch2_pa4>;
+        pinctrl-names = "default";
+        status = "okay";
+    };
+};
+
+&timers15 {
+    st,prescaler = <(170 - 1)>;
+    status = "okay";
+
+    counter {
+        compatible = "st,stm32-counter";
+        status = "okay";
+    };
+};
+
+&adc1 {
+	pinctrl-0 = <&adc1_in1_pa0 &adc1_in2_pa1 &adc1_in7_pc1
+        &adc1_in8_pc2 &adc1_in9_pc3>;
+	pinctrl-names = "default";
+	st,adc-clock-source = <SYNC>;
+	st,adc-prescaler = <4>;
+    #address-cells = <1>;
+    #size-cells = <0>;
+	status = "okay";
+
+    channel@1 {
+        reg = <1>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
+        zephyr,resolution = <12>;
+    };
+
+    channel@2 {
+        reg = <2>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
+        zephyr,resolution = <12>;
+    };
+
+    channel@7 {
+        reg = <7>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
+        zephyr,resolution = <12>;
+    };
+
+    channel@8 {
+        reg = <8>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
+        zephyr,resolution = <12>;
+    };
+
+    channel@9 {
+        reg = <9>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
+        zephyr,resolution = <12>;
+    };
+};
+
+&usart1 {
+    pinctrl-0 = <&usart1_tx_pc4 &usart1_rx_pc5 &usart1_de_pa12>;
+    pinctrl-names = "default";
+    current-speed = <115200>;
+    de-enable;
+    de-assert-time = <6>;
+    de-deassert-time = <6>;
+    status = "disabled";
+};
+
+&usart3 {
+    pinctrl-0 = <&usart3_tx_pb10 &usart3_rx_pb11 &usart3_de_pb14>;
+    pinctrl-names = "default";
+    current-speed = <115200>;
+    de-enable;
+    de-assert-time = <6>;
+    de-deassert-time = <6>;
+    status = "okay";
+
+    apps2: encoder2 {
+        compatible = "cui,amt21";
+        addr = <0x54>;
+        status = "okay";
+    };
+};
+
+&uart5 {
+    pinctrl-0 = <&uart5_tx_pc12 &uart5_rx_pd2 &uart5_de_pb4>;
+    pinctrl-names = "default";
+    current-speed = <115200>;
+    de-enable;
+    de-assert-time = <6>;
+    de-deassert-time = <6>;
+    status = "okay";
+
+    apps1: encoder1 {
+        compatible = "cui,amt21";
+        addr = <0x54>;
+        status = "okay";
+    };
+
+    steer: encoder0 {
+        compatible = "cui,amt21";
+        addr = <0x50>;
+        status = "okay";
+    };
+};
+
+&spi2 {
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pa10 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpioc 6 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    status = "okay";
+
+    74hc595@0 {
+        compatible = "diodes,74hc595";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        reg = <0>;
+        spi-max-frequency = <5000000>;
+        status = "okay";
+
+        disp0: ex-gpio@0 {
+            reg = <0>;
+            gpio-controller;
+            ngpios = <8>;
+            #gpio-cells = <2>;
+            status = "okay";
+        };
+
+        disp1: ex-gpio@1 {
+            reg = <1>;
+            gpio-controller;
+            ngpios = <8>;
+            #gpio-cells = <2>;
+            status = "okay";
+        };
+    };
+};
+
+&spi3 {
+    pinctrl-0 = <&spi3_sck_pc10 &spi3_miso_pc11 &spi3_mosi_pb5>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 7 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    dmas = <&dmamux1 1 14 STM32_DMA_PERIPH_RX>,
+        <&dmamux1 2 15 STM32_DMA_PERIPH_TX>;
+    dma-names = "rx", "tx";
+    status = "okay";
+
+    sdhc0: sdhc@0 {
+        compatible = "zephyr,sdhc-spi-slot";
+        reg = <0>;
+        spi-max-frequency = <4000000>;
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,sdmmc-disk";
+            status = "okay";
+        };
+    };
+};
+
+&fdcan1 {
+    pinctrl-0 = <&fdcan1_tx_pb9 &fdcan1_rx_pb8>;
+    pinctrl-names = "default";
+    bitrate = <500000>;
+    sample-point = <800>;
+    bitrate-data = <500000>;
+    sample-point-data = <800>;
+    status = "okay";
+};
+
+&fdcan2 {
+    pinctrl-0 = <&fdcan2_tx_pb6 &fdcan2_rx_pb12>;
+    pinctrl-names = "default";
+    bitrate = <500000>;
+    sample-point = <800>;
+    bitrate-data = <500000>;
+    sample-point-data = <800>;
+    status = "disabled";
+};
+
+&fdcan3 {
+    pinctrl-0 = <&fdcan3_tx_pa15 &fdcan3_rx_pa8>;
+    pinctrl-names = "default";
+    bitrate = <500000>;
+    sample-point = <800>;
+    bitrate-data = <500000>;
+    sample-point-data = <800>;
+    status = "disabled";
+};
