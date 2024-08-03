@@ -1,4 +1,4 @@
-#include "nturt/sys.h"
+#include "sys.h"
 
 // glibc includes
 #include <errno.h>
@@ -11,21 +11,23 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/bbram.h>
+#include <zephyr/drivers/led.h>
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
 #include <zephyr/init.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/logging/log_ctrl.h>
 #include <zephyr/posix/time.h>
+#include <zephyr/sys/reboot.h>
 #include <zephyr/sys/util.h>
 
 // project includes
-#include "nturt/init.h"
-#include "nturt/nturt.h"
+#include "define.h"
 
 LOG_MODULE_REGISTER(sys);
 
-/* macros --------------------------------------------------------------------*/
+/* macro ---------------------------------------------------------------------*/
 /// @brief Number of retry to mount file system.
 #define INIT_FS_MOUNT_RETRY 3
 
@@ -37,11 +39,14 @@ static int mount_fs();
 /// realtime clock time to RTC time.
 static int set_posix_clock();
 
-/* static varaibles ----------------------------------------------------------*/
+/* static varaible -----------------------------------------------------------*/
+static const struct device* leds = DEVICE_DT_GET(DT_NODELABEL(leds));
+
 static const struct device* rtc = DEVICE_DT_GET(DT_NODELABEL(rtc));
 
-SYS_INIT(mount_fs, APPLICATION, INIT_SYS_INIT_PRIORITY);
-SYS_INIT(set_posix_clock, APPLICATION, UTIL_INC(INIT_SYS_INIT_PRIORITY));
+SYS_INIT(mount_fs, APPLICATION, CONFIG_NTURT_SYS_INIT_PRIORITY);
+SYS_INIT(set_posix_clock, APPLICATION,
+         UTIL_INC(CONFIG_NTURT_SYS_INIT_PRIORITY));
 
 /* function definition -------------------------------------------------------*/
 int sys_set_time(time_t time) {
@@ -64,6 +69,23 @@ int sys_set_time(time_t time) {
   }
 
   return 0;
+}
+
+void sys_reset() {
+  k_sched_lock();
+
+  LOG_INF("System reset");
+  log_panic();
+
+  led_on(leds, LED_NUM_RTD_SOUND);
+  k_busy_wait(200 * 1000);
+  led_off(leds, LED_NUM_RTD_SOUND);
+  k_busy_wait(100 * 1000);
+  led_on(leds, LED_NUM_RTD_SOUND);
+  k_busy_wait(200 * 1000);
+  led_off(leds, LED_NUM_RTD_SOUND);
+
+  sys_reboot(SYS_REBOOT_COLD);
 }
 
 /* static function definition ------------------------------------------------*/

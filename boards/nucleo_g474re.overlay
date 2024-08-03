@@ -1,6 +1,6 @@
 / {
     aliases {
-        canopen-can = &fdcan1;
+        canopen-can = &fdcan2;
         canopen-green-led = &canopen_run_led;
         canopen-red-led = &canopen_err_led;
     };
@@ -9,20 +9,27 @@
         compatible = "gpio-leds";
 
         canopen_run_led: canopen-run-led {
-            gpios = <&gpioa 6 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+            gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
         };
 
         canopen_err_led: canopen-err-led {
-            gpios = <&gpioa 7 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+            gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
         };
 
-        break_light: break-light {
-            gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        brake_light: brake-light {
+            gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
         };
 
         rtd_sound: rtd-sound {
-            gpios = <&gpioc 8 (GPIO_ACTIVE_HIGH)>;
+            gpios = <&gpioc 8 GPIO_ACTIVE_HIGH>;
         };
+    };
+
+    dash_leds: dash-leds {
+        compatible = "nturt,dash-leds";
+        index = <0x2120>;
+        node-id = <0x02>;
+        status = "okay";
     };
 
     pwmleds: pwmleds {
@@ -31,54 +38,66 @@
         green_pwm_led {
             status = "disabled";
         };
-
-        display_pwm_led: display-pwm-led {
-            pwms = <&pwm3 2 PWM_MSEC(1) PWM_POLARITY_INVERTED>;
-        };
     };
 
     buttons: buttons {
         compatible = "gpio-keys";
         debounce-interval-ms = <20>;
 
-        accel_micro: accel-micro {
-            gpios = <&gpioc 9 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        apps_micro: apps-micro {
+            gpios = <&gpioa 9 GPIO_ACTIVE_LOW>;
             zephyr,code = <INPUT_KEY_A>;
         };
 
-        break_micro: break-micro {
-            gpios = <&gpioc 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+        bse_micro: bse-micro {
+            gpios = <&gpioc 7 GPIO_ACTIVE_LOW>;
             zephyr,code = <INPUT_KEY_B>;
         };
     };
 
-    susp_dive_r: susp-dive-r {
-        compatible = "res,zx";
-        io-channels = <&adc1 7>;
-        stroke = <50>;
+    dash_buttons: dash-buttons {
+        compatible = "nturt,dash-keys";
+        index = <0x2110>;
+        zephyr,code = <INPUT_KEY_PLAY>, <INPUT_KEY_H>, <INPUT_KEY_M>;
         status = "okay";
     };
 
-    susp_roll_r: susp-roll-r {
+    longpress: longpress {
+        compatible = "zephyr,input-longpress";
+        input-codes = <INPUT_KEY_PLAY>, <INPUT_KEY_M>, <INPUT_KEY_H>;
+        long-codes = <INPUT_KEY_POWER>, <INPUT_KEY_MENU>, <INPUT_KEY_HOME>;
+        long-delay-ms = <2000>;
+    };
+
+    bse_f: bse-f {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 1>;
+        full-scale = <1000>;
+        shunt-resistor = <103200>;
+        tolerance = <10>;
+        status = "okay";
+    };
+
+    bse_r: bse-r {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 2>;
+        full-scale = <1000>;
+        shunt-resistor = <103200>;
+        tolerance = <10>;
+        status = "okay";
+    };
+
+    susp_dive_r: susp-dive-r {
         compatible = "res,zx";
         io-channels = <&adc1 8>;
         stroke = <50>;
         status = "okay";
     };
 
-    break_press_f: break-press-f {
-        compatible = "ssi,p51-curr";
-        io-channels = <&adc1 1>;
-        full-scale = <1000>;
-        shunt-resistor = <100000>;
-        status = "okay";
-    };
-
-    break_press_r: break-press-r {
-        compatible = "ssi,p51-curr";
-        io-channels = <&adc1 2>;
-        full-scale = <1000>;
-        shunt-resistor = <100000>;
+    susp_roll_r: susp-roll-r {
+        compatible = "res,zx";
+        io-channels = <&adc1 9>;
+        stroke = <50>;
         status = "okay";
     };
 
@@ -87,6 +106,40 @@
         gpios = <&gpiob 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
         num-tooth = <20>;
         status = "okay";
+    };
+
+    error_disp: error-disp {
+        compatible = "gpio-seg-display";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        decimal-point;
+        columns = <2>;
+        rows = <1>;
+        status = "okay";
+
+        seg-display@0 {
+            reg = <0>;
+            segment-gpios = <&ex_gpio1 0 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 1 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 2 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 3 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 4 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 5 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 6 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 7 GPIO_ACTIVE_HIGH>;
+        };
+
+        seg-display@1 {
+            reg = <1>;
+            segment-gpios = <&ex_gpio0 0 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 1 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 2 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 3 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 4 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 5 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 6 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 7 GPIO_ACTIVE_HIGH>;
+        };
     };
 
     fstab {
@@ -112,6 +165,7 @@
 
 &rcc {
     apb1-prescaler = <4>;
+    apb2-prescaler = <4>;
 };
 
 &dma1 {
@@ -133,30 +187,8 @@
     };
 };
 
-&timers3 {
-    st,prescaler = <(170 - 1)>;
-    status = "okay";
-
-    pwm3: pwm {
-        pinctrl-0 = <&tim3_ch2_pa4>;
-        pinctrl-names = "default";
-        status = "okay";
-    };
-};
-
-&timers15 {
-    st,prescaler = <(170 - 1)>;
-    status = "okay";
-
-    counter {
-        compatible = "st,stm32-counter";
-        status = "okay";
-    };
-};
-
 &adc1 {
-	pinctrl-0 = <&adc1_in1_pa0 &adc1_in2_pa1 &adc1_in7_pc1
-        &adc1_in8_pc2 &adc1_in9_pc3>;
+	pinctrl-0 = <&adc1_in1_pa0 &adc1_in2_pa1 &adc1_in8_pc2 &adc1_in9_pc3>;
 	pinctrl-names = "default";
 	st,adc-clock-source = <SYNC>;
 	st,adc-prescaler = <4>;
@@ -170,6 +202,7 @@
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
         zephyr,resolution = <12>;
+        zephyr,oversampling = <8>;
     };
 
     channel@2 {
@@ -178,14 +211,7 @@
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
         zephyr,resolution = <12>;
-    };
-
-    channel@7 {
-        reg = <7>;
-        zephyr,gain = "ADC_GAIN_1";
-        zephyr,reference = "ADC_REF_INTERNAL";
-        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
-        zephyr,resolution = <12>;
+        zephyr,oversampling = <8>;
     };
 
     channel@8 {
@@ -208,33 +234,7 @@
 &usart1 {
     pinctrl-0 = <&usart1_tx_pc4 &usart1_rx_pc5 &usart1_de_pa12>;
     pinctrl-names = "default";
-    current-speed = <115200>;
-    de-enable;
-    de-assert-time = <6>;
-    de-deassert-time = <6>;
-    status = "disabled";
-};
-
-&usart3 {
-    pinctrl-0 = <&usart3_tx_pb10 &usart3_rx_pb11 &usart3_de_pb14>;
-    pinctrl-names = "default";
-    current-speed = <115200>;
-    de-enable;
-    de-assert-time = <6>;
-    de-deassert-time = <6>;
-    status = "okay";
-
-    apps2: encoder2 {
-        compatible = "cui,amt21";
-        addr = <0x54>;
-        status = "okay";
-    };
-};
-
-&uart5 {
-    pinctrl-0 = <&uart5_tx_pc12 &uart5_rx_pd2 &uart5_de_pb4>;
-    pinctrl-names = "default";
-    current-speed = <115200>;
+    current-speed = <38400>;
     de-enable;
     de-assert-time = <6>;
     de-deassert-time = <6>;
@@ -253,6 +253,32 @@
     };
 };
 
+&usart3 {
+    pinctrl-0 = <&usart3_tx_pb10 &usart3_rx_pb11 &usart3_de_pb14>;
+    pinctrl-names = "default";
+    current-speed = <38400>;
+    de-enable;
+    de-assert-time = <6>;
+    de-deassert-time = <6>;
+    status = "okay";
+
+    apps2: encoder2 {
+        compatible = "cui,amt21";
+        addr = <0x54>;
+        status = "okay";
+    };
+};
+
+&uart5 {
+    pinctrl-0 = <&uart5_tx_pc12 &uart5_rx_pd2 &uart5_de_pb4>;
+    pinctrl-names = "default";
+    current-speed = <38400>;
+    de-enable;
+    de-assert-time = <6>;
+    de-deassert-time = <6>;
+    status = "disabled";
+};
+
 &spi2 {
     pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pa10 &spi2_mosi_pb15>;
     pinctrl-names = "default";
@@ -267,7 +293,7 @@
         spi-max-frequency = <5000000>;
         status = "okay";
 
-        disp0: ex-gpio@0 {
+        ex_gpio0: ex-gpio@0 {
             reg = <0>;
             gpio-controller;
             ngpios = <8>;
@@ -275,7 +301,7 @@
             status = "okay";
         };
 
-        disp1: ex-gpio@1 {
+        ex_gpio1: ex-gpio@1 {
             reg = <1>;
             gpio-controller;
             ngpios = <8>;
@@ -314,7 +340,7 @@
     sample-point = <800>;
     bitrate-data = <500000>;
     sample-point-data = <800>;
-    status = "okay";
+    status = "disabled";
 };
 
 &fdcan2 {
@@ -324,7 +350,7 @@
     sample-point = <800>;
     bitrate-data = <500000>;
     sample-point-data = <800>;
-    status = "disabled";
+    status = "okay";
 };
 
 &fdcan3 {

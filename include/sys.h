@@ -1,9 +1,11 @@
-#ifndef NTURT_SYS_H_
-#define NTURT_SYS_H_
+#ifndef SYS_H_
+#define SYS_H_
 
 // glibc includes
 #include <time.h>
 
 int sys_set_time(time_t time);
 
-#endif // NTURT_SYS_H_
+void sys_reset();
+
+#endif // SYS_H_

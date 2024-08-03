@@ -1,0 +1,65 @@
+/*
+ * Academic License - for use in teaching, academic research, and meeting
+ * course requirements at degree granting institutions only.  Not for
+ * government, commercial, or other organizational use.
+ *
+ * File: vehicle_control_dumb.c
+ *
+ * Code generated for Simulink model 'vehicle_control_dumb'.
+ *
+ * Model version                  : 1.21
+ * Simulink Coder version         : 9.6 (R2021b) 14-May-2021
+ * C/C++ source code generated on : Wed Jul 31 20:06:35 2024
+ *
+ * Target selection: ert.tlc
+ * Embedded hardware selection: ARM Compatible->ARM Cortex-M
+ * Code generation objectives:
+ *    1. Execution efficiency
+ *    2. RAM efficiency
+ * Validation result: Not run
+ */
+
+#include "vehicle_control_dumb.h"
+
+/* Exported data definition */
+
+/* Definition for custom storage class: Struct */
+ctrl_dumb_parm_type ctrl_dumb_parm = {
+  /* mtr_trq */
+  10.0
+};
+
+/* External inputs (root inport signals with default storage) */
+ExtU rtU;
+
+/* External outputs (root outports fed by signals with default storage) */
+ExtY rtY;
+
+/* Model step function */
+void vehicle_control_dumb_step(void)
+{
+  real_T rtb_Gain;
+
+  /* Gain: '<Root>/Gain' incorporates:
+   *  Inport: '<Root>/gas'
+   */
+  rtb_Gain = ctrl_dumb_parm.mtr_trq * rtU.gas;
+
+  /* Outport: '<Root>/trq_rl' */
+  rtY.trq_rl = rtb_Gain;
+
+  /* Outport: '<Root>/trq_rr' */
+  rtY.trq_rr = rtb_Gain;
+}
+
+/* Model initialize function */
+void vehicle_control_dumb_initialize(void)
+{
+  /* (no initialization code required) */
+}
+
+/*
+ * File trailer for generated code.
+ *
+ * [EOF]
+ */

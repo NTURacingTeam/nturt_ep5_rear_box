@@ -1,0 +1,91 @@
+/*
+ * Academic License - for use in teaching, academic research, and meeting
+ * course requirements at degree granting institutions only.  Not for
+ * government, commercial, or other organizational use.
+ *
+ * File: vehicle_control_dumb.h
+ *
+ * Code generated for Simulink model 'vehicle_control_dumb'.
+ *
+ * Model version                  : 1.21
+ * Simulink Coder version         : 9.6 (R2021b) 14-May-2021
+ * C/C++ source code generated on : Wed Jul 31 20:06:35 2024
+ *
+ * Target selection: ert.tlc
+ * Embedded hardware selection: ARM Compatible->ARM Cortex-M
+ * Code generation objectives:
+ *    1. Execution efficiency
+ *    2. RAM efficiency
+ * Validation result: Not run
+ */
+
+#ifndef RTW_HEADER_vehicle_control_dumb_h_
+#define RTW_HEADER_vehicle_control_dumb_h_
+#ifndef vehicle_control_dumb_COMMON_INCLUDES_
+#define vehicle_control_dumb_COMMON_INCLUDES_
+#include "rtwtypes.h"
+#endif                               /* vehicle_control_dumb_COMMON_INCLUDES_ */
+
+/* Model Code Variants */
+
+/* Macros for accessing real-time model data structure */
+
+/* External inputs (root inport signals with default storage) */
+typedef struct {
+  real_T gas;                          /* '<Root>/gas' */
+  real_T whl_spd_rl;                   /* '<Root>/whl_spd_rl' */
+  real_T whl_spd_rr;                   /* '<Root>/whl_spd_rr' */
+  real_T v_x;                          /* '<Root>/v_x' */
+  real_T steer_rr;                     /* '<Root>/steer_rr' */
+  real_T yaw_rate;                     /* '<Root>/yaw_rate' */
+} ExtU;
+
+/* External outputs (root outports fed by signals with default storage) */
+typedef struct {
+  real_T trq_rl;                       /* '<Root>/trq_rl' */
+  real_T trq_rr;                       /* '<Root>/trq_rr' */
+} ExtY;
+
+/* Type definition for custom storage class: Struct */
+typedef struct ctrl_dumb_parm_tag {
+  real_T mtr_trq;                      /* Referenced by: '<Root>/Gain' */
+} ctrl_dumb_parm_type;
+
+/* External inputs (root inport signals with default storage) */
+extern ExtU rtU;
+
+/* External outputs (root outports fed by signals with default storage) */
+extern ExtY rtY;
+
+/* Model entry point functions */
+extern void vehicle_control_dumb_initialize(void);
+extern void vehicle_control_dumb_step(void);
+
+/* Exported data declaration */
+
+/* Declaration for custom storage class: Struct */
+extern ctrl_dumb_parm_type ctrl_dumb_parm;
+
+/*-
+ * The generated code includes comments that allow you to trace directly
+ * back to the appropriate location in the model.  The basic format
+ * is <system>/block_name, where system is the system number (uniquely
+ * assigned by Simulink) and block_name is the name of the block.
+ *
+ * Use the MATLAB hilite_system command to trace the generated code back
+ * to the model.  For example,
+ *
+ * hilite_system('<S3>')    - opens system 3
+ * hilite_system('<S3>/Kp') - opens and selects block Kp which resides in S3
+ *
+ * Here is the system hierarchy for this model
+ *
+ * '<Root>' : 'vehicle_control_dumb'
+ */
+#endif                                 /* RTW_HEADER_vehicle_control_dumb_h_ */
+
+/*
+ * File trailer for generated code.
+ *
+ * [EOF]
+ */
