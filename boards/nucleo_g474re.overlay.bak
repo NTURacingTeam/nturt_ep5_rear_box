@@ -2,11 +2,11 @@
 
 / {
     chosen {
-        zephyr,canbus = &fdcan3;
         nturt,rtc = &rtc;
     };
 
     aliases {
+        canopen-can = &fdcan2;
         canopen-green-led = &canopen_run_led;
         canopen-red-led = &canopen_err_led;
     };
@@ -15,24 +15,26 @@
         compatible = "gpio-leds";
 
         canopen_run_led: canopen-run-led {
-            gpios = <&gpioc 9 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+            gpios = <&gpioa 7 GPIO_ACTIVE_HIGH>;
         };
 
         canopen_err_led: canopen-err-led {
-            gpios = <&gpioc 8 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+            gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
         };
 
         brake_light: brake-light {
-            gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
         };
 
         rtd_sound: rtd-sound {
-            gpios = <&gpioc 3 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpioc 8 GPIO_ACTIVE_HIGH>;
         };
     };
 
     dash_leds: dash-leds {
         compatible = "nturt,dash-leds";
+        index = <0x2120>;
+        node-id = <0x02>;
     };
 
     pwmleds: pwmleds {
@@ -60,7 +62,7 @@
 
     bse_f: bse-f {
         compatible = "ssi,p51-curr";
-        io-channels = <&adc1 15>;
+        io-channels = <&adc1 1>;
         full-scale = <1000>;
         shunt-resistor = <103200>;
         tolerance = <10>;
@@ -68,7 +70,7 @@
 
     bse_r: bse-r {
         compatible = "ssi,p51-curr";
-        io-channels = <&adc1 7>;
+        io-channels = <&adc1 2>;
         full-scale = <1000>;
         shunt-resistor = <103200>;
         tolerance = <10>;
@@ -76,28 +78,14 @@
 
     susp_dive_r: susp-dive-r {
         compatible = "res,zx";
-        io-channels = <&adc1 1>;
+        io-channels = <&adc1 8>;
         stroke = <50>;
     };
 
     susp_roll_r: susp-roll-r {
         compatible = "res,zx";
-        io-channels = <&adc1 2>;
+        io-channels = <&adc1 9>;
         stroke = <50>;
-    };
-
-    v_24: v-24 {
-        compatible = "voltage-divider";
-        io-channels = <&adc1 8>;
-        full-ohms = <(47500 + 5900)>;
-        output-ohms = <5900>;
-    };
-
-    i_24: i-24 {
-        compatible = "current-sense-amplifier";
-        io-channels = <&adc1 6>;
-        sense-resistor-micro-ohms = <3>;
-        sense-gain-mult = <100>;
     };
 
     error_disp: error-disp {
@@ -179,26 +167,11 @@
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
         zephyr,resolution = <12>;
+        zephyr,oversampling = <8>;
     };
 
     channel@2 {
         reg = <2>;
-        zephyr,gain = "ADC_GAIN_1";
-        zephyr,reference = "ADC_REF_INTERNAL";
-        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
-        zephyr,resolution = <12>;
-    };
-
-    channel@6 {
-        reg = <6>;
-        zephyr,gain = "ADC_GAIN_1";
-        zephyr,reference = "ADC_REF_INTERNAL";
-        zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
-        zephyr,resolution = <12>;
-    };
-
-    channel@7 {
-        reg = <7>;
         zephyr,gain = "ADC_GAIN_1";
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
@@ -214,13 +187,12 @@
         zephyr,resolution = <12>;
     };
 
-    channel@f {
-        reg = <15>;
+    channel@9 {
+        reg = <9>;
         zephyr,gain = "ADC_GAIN_1";
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_TICKS, 93)>;
         zephyr,resolution = <12>;
-        zephyr,oversampling = <8>;
     };
 };
 
@@ -235,26 +207,26 @@
 &usart1 {
     pinctrl-0 = <&usart1_tx_pc4 &usart1_rx_pc5 &usart1_de_pa12>;
     pinctrl-names = "default";
-    current-speed = <115200>;
+    current-speed = <38400>;
     fifo-enable;
     de-enable;
     status = "okay";
 
-    steer: steer {
-        compatible = "cui,amt21";
-        addr = <0x50>;
-    };
-
     apps1: apps1 {
         compatible = "cui,amt21";
         addr = <0x54>;
+    };
+
+    steer: steer {
+        compatible = "cui,amt21";
+        addr = <0x50>;
     };
 };
 
 &usart3 {
     pinctrl-0 = <&usart3_tx_pb10 &usart3_rx_pb11 &usart3_de_pb14>;
     pinctrl-names = "default";
-    current-speed = <115200>;
+    current-speed = <38400>;
     fifo-enable;
     de-enable;
     status = "okay";
@@ -268,7 +240,7 @@
 &uart5 {
     pinctrl-0 = <&uart5_tx_pc12 &uart5_rx_pd2 &uart5_de_pb4>;
     pinctrl-names = "default";
-    current-speed = <115200>;
+    current-speed = <38400>;
     fifo-enable;
     de-enable;
     status = "disabled";
@@ -340,7 +312,7 @@
     sample-point = <800>;
     bitrate-data = <500000>;
     sample-point-data = <800>;
-    status = "disabled";
+    status = "okay";
 };
 
 &fdcan3 {
@@ -350,5 +322,5 @@
     sample-point = <800>;
     bitrate-data = <500000>;
     sample-point-data = <800>;
-    status = "okay";
+    status = "disabled";
 };

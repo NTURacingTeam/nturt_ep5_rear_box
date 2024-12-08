@@ -1,0 +1,55 @@
+menu "Pedals"
+
+config APPS_VAL_TOL
+    int "APPS value tolerance"
+    default 10
+    help
+      APPS value tolerance before it's considered out of range in percentage of
+      sensor value range.
+
+config APPS_THRES
+    int "APPS travel threshold"
+    default 5
+    help
+      APPS travel threshold before reported threshold is not zero in percentage
+      of sensor value range.
+
+config APPS_MICRO
+    bool "Use micro switch for APPS engagement detection"
+    default y
+    help
+      Warning: If this option is not selected, APPS zero position will always be
+      set when boot up whether it's actually in the home position or not.
+
+config APPS_PLAUS
+    bool "Enable APPS plausibility check"
+    default y
+
+config BSE_F
+    bool "Use front BSE data in control logic"
+    default y
+
+config BSE_R
+    bool "Use rear BSE data in control logic"
+    default y
+
+config BSE_MICRO
+    bool "Use micro switch for BSE engagement detection"
+    default y
+
+config BSE_THRES
+    int "BSE travel threshold"
+    default 3
+    help
+      BSE travel threshold before reported threshold is not zero.
+
+config BSE_PLAUS
+    bool "Enable BSE plausibility check"
+    depends on BSE_F && BSE_R
+    default y
+
+config PEDAL_PLAUS
+    bool "Enable pedals plausibility check"
+    default y
+
+endmenu # "Pedals"

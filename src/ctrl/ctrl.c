@@ -18,10 +18,13 @@
 #include "vehicle_control.h"
 
 // project includes
-#include "define.h"
+#include "dt-bindings/rear_box.h"
 #include "msg.h"
 #include "sensors.h"
 #include "states.h"
+
+// nturt includes
+#include <nturt/rear_box/ctrl.h>
 
 LOG_MODULE_REGISTER(ctrl);
 
@@ -51,7 +54,7 @@ struct ctrl {
 /* static function declaration -----------------------------------------------*/
 static void ctrl_thread(void *arg1, void *arg2, void *arg3);
 
-static void control_step(struct ctrl_data *data);
+static void control_step(struct ctrl *ctrl);
 
 static void states_run(void *obj);
 
@@ -91,44 +94,40 @@ static const struct smf_state smf_states[] = {
     [CTRL_MDOE_INITIAL] = SMF_CREATE_STATE(NULL, states_run, NULL, NULL, NULL),
 };
 
-ZBUS_CHAN_DEFINE(ctrl_mode_chan, enum ctrl_mode, NULL, NULL,
+ZBUS_CHAN_DEFINE(ctrl_data_chan, struct ctrl_data, NULL, NULL,
                  ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
-
-ZBUS_CHAN_DEFINE(ctrl_data_chan, struct ctrl, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
-                 ZBUS_MSG_INIT(0));
 
 ZBUS_SUBSCRIBER_DEFINE(ctrl_input_sub, 10);
 ZBUS_CHAN_ADD_OBS(sensor_data_chan, ctrl_input_sub, 0);
 ZBUS_CHAN_ADD_OBS(inv_data_chan, ctrl_input_sub, 0);
 ZBUS_CHAN_ADD_OBS(imu_data_chan, ctrl_input_sub, 0);
 
-K_THREAD_DEFINE(ctrl_thread_tid, 4096, ctrl_thread, &ctrl, NULL, NULL,
+K_THREAD_DEFINE(ctrl_thread_tid, 1024, ctrl_thread, &ctrl, NULL, NULL,
                 CONFIG_NTURT_CTRL_THREAD_PRIORITY, 0, 1);
 
 /* function definition -------------------------------------------------------*/
-int ctrl_mode_next() {
-  if (ctrl.enabled) {
-    LOG_ERR("Can only change control mode when control is disabled");
+enum ctrl_mode ctrl_mode_get() { return ctrl.mode; }
 
-    return -EINVAL;
-  }
+void ctrl_mode_set(enum ctrl_mode mode) {
+  __ASSERT(!ctrl.enabled,
+           "Can only change control mode when control is disabled");
 
-  ctrl.mode = (ctrl.mode + 1) % NUM_CTRL_MODES;
+  ctrl.mode = mode;
   smf_run_state(&ctrl.smf_ctx);
-
-  return 0;
 }
 
-int ctrl_enable() {
-  ctrl.enabled = true;
+void ctrl_enable() { ctrl.enabled = true; }
 
-  return 0;
-}
-
-int ctrl_disable() {
+void ctrl_disable() {
   ctrl.enabled = false;
 
-  return 0;
+#if IS_ENABLED(CONFIG_NTURT_FRONT_INV)
+  ctrl.data.fl.torque_cmd = 0.0F;
+  ctrl.data.fr.torque_cmd = 0.0F;
+#endif  // CONFIG_NTURT_FRONT_INV
+
+  ctrl.data.rl.torque_cmd = 0.0F;
+  ctrl.data.rr.torque_cmd = 0.0F;
 }
 
 /* static function definition ------------------------------------------------*/
@@ -179,43 +178,57 @@ static void ctrl_thread(void *arg1, void *arg2, void *arg3) {
       }
     }
 
-    // update speed
-    /// @todo: Kalman filter
-    ctrl->data.speed = (ctrl->inv_data.rl.speed + ctrl->inv_data.rr.speed) / 2;
+// update speed
+/// @todo: Kalman filter
+#if IS_ENABLED(CONFIG_NTURT_FRONT_INV) || IS_ENABLED(CONFIG_NTURT_FRONT_WHL_SPD)
+    ctrl->data.speed = (ctrl->inv_data.fl.speed + ctrl->inv_data.fr.speed +
+                        ctrl->inv_data.rl.speed + ctrl->inv_data.rr.speed +) /
+                       4;
+#else
+    ctrl->data.speed = (ctrl->inv_data.rl.speed + ctrl->inv_data.rr.speed) / 2 *
+                       0.0958f / 13.0f;
+#endif
 
     if (ctrl->enabled) {
-      control_step(&ctrl->data);
+      control_step(ctrl);
     }
 
     ret = zbus_chan_pub(&ctrl_data_chan, &ctrl->data, K_MSEC(5));
     if (ret < 0) {
-      LOG_ERR("Failed to write to ctrl_data_chan: %s", strerror(-ret));
+      LOG_ERR("Failed to publish ctrl_data: %s", strerror(-ret));
     }
 
     k_sleep(sys_timepoint_timeout(next));
   }
 }
 
-static void control_step(struct ctrl_data *data) {
+static void control_step(struct ctrl *ctrl) {
   /// @todo: use lookup table to map
-  rtU.gas = ctrl.sensor_data.apps.travel;
-  rtU.whl_spd_rl = ctrl.inv_data.rl.speed;
-  rtU.whl_spd_rr = ctrl.inv_data.rr.speed;
-  rtU.v_x = data->speed;
-  rtU.a_y = ctrl.imu_data.accel.y;
-  rtU.yaw_rate = ctrl.imu_data.gyro.z;
+  rtU.gas = ctrl->sensor_data.apps.travel;
+  rtU.whl_spd_rl = ctrl->inv_data.rl.speed;
+  rtU.whl_spd_rr = ctrl->inv_data.rr.speed;
+  rtU.v_x = ctrl->data.speed;
+  rtU.a_y = ctrl->imu_data.accel.y;
+  rtU.yaw_rate = ctrl->imu_data.gyro.z;
 
   vehicle_control_step();
 
-  data->rl.torque_cmd = rtY.trq_rl;
-  data->rr.torque_cmd = rtY.trq_rr;
+  // ctrl->data.rl.torque_cmd = rtY.trq_rl;
+  // ctrl->data.rr.torque_cmd = rtY.trq_rr;
+
+  if (err_get_errors() & ERR_CODE_PEDAL_PLAUS) {
+    ctrl->data.rl.torque_cmd = 0.0F;
+    ctrl->data.rr.torque_cmd = 0.0F;
+  } else {
+    ctrl->data.rl.torque_cmd = -600.0F * ctrl->sensor_data.apps.travel;
+    ctrl->data.rr.torque_cmd = 600.0F * ctrl->sensor_data.apps.travel;
+  }
 }
 
 static void states_run(void *obj) {
   struct ctrl *ctrl = obj;
 
   smf_set_state(&ctrl->smf_ctx, &smf_states[ctrl->mode]);
-  zbus_chan_pub(&ctrl_mode_chan, &ctrl->mode, K_MSEC(5));
 }
 
 static void low_entry(void *obj) {

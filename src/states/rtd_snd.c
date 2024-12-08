@@ -12,7 +12,7 @@
 #include <zephyr/sys/util.h>
 
 // project includes
-#include "define.h"
+#include "dt-bindings/rear_box.h"
 #include "states.h"
 
 LOG_MODULE_REGISTER(states_rtd_snd);
@@ -40,7 +40,12 @@ void rtd_snd_update_work(struct k_work *work) {
   if (!rtd_snd->on) {
     rtd_snd->on = true;
     led_on(leds, LED_NUM_RTD_SOUND);
-    k_work_reschedule(&rtd_snd->update_work, K_MSEC(200));
+
+    if (rtd_snd->count == 0) {
+      k_work_reschedule(&rtd_snd->update_work, K_MSEC(1000));
+    } else {
+      k_work_reschedule(&rtd_snd->update_work, K_MSEC(200));
+    }
 
   } else {
     if (++rtd_snd->count < 3) {

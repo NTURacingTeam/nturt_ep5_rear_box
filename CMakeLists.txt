@@ -5,23 +5,17 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(nturt_rear_box LANGUAGES C)
 
-add_subdirectory(objdict)
-add_subdirectory(simulink)
-
 zephyr_include_directories(
     include
 )
 
+add_subdirectory(src/ctrl)
+add_subdirectory(src/msg)
+add_subdirectory(src/sensors)
+add_subdirectory(src/states)
+
 target_sources(app PRIVATE
-    src/dash/button.c
-    src/dash/led.c
-    src/states/rtd_snd.c
-    src/states/states.c
-    src/states/status_ctrl.c
-    src/ctrl.c
     src/err.c
     src/main.c
-    src/msg.c
-    src/sensors.c
     src/sys.c
 )

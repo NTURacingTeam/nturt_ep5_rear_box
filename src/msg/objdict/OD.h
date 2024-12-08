@@ -14,9 +14,9 @@
         Project File: nturt_rear_box.xdd
         File Version: 0
 
-        Created:      2024/6/10 上午 09:31:00
+        Created:      2024/6/10 上午 10:31:00
         Created By:   NTU Racing Team
-        Modified:     2024/8/1 下午 02:26:15
+        Modified:     2024/9/9 下午 04:50:27
         Modified By:  NTU Racing Team
 
     Device Info:
@@ -54,7 +54,7 @@
 #define OD_CNT_ARR_1003 16
 #define OD_CNT_ARR_1010 4
 #define OD_CNT_ARR_1011 4
-#define OD_CNT_ARR_1016 4
+#define OD_CNT_ARR_1016 1
 #define OD_CNT_ARR_2310 2
 #define OD_CNT_ARR_2311 2
 #define OD_CNT_ARR_2320 3
@@ -79,10 +79,22 @@ typedef struct {
     int32_t x1011_restoreDefaultParameters[OD_CNT_ARR_1011];
     struct {
         uint8_t highestSub_indexSupported;
+        uint8_t V_24;
+        uint8_t I_24;
+        uint8_t I_5;
+    } x2070_power;
+    uint8_t x2080_rearBoxCommand;
+    uint8_t x2081_rearBoxControlMode;
+    struct {
+        uint8_t highestSub_indexSupported;
         uint16_t states;
         uint32_t errors;
-        uint8_t controlMode;
-    } x20C0_rearBoxState;
+    } x20F0_rearBoxState;
+    struct {
+        uint8_t highestSub_indexSupported;
+        uint16_t states;
+        uint32_t errors;
+    } x20F1_frontBoxState;
     int16_t x2100_steerAngle;
     struct {
         uint8_t highestSub_indexSupported;
@@ -753,46 +765,50 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1A07 &OD->list[68]
 #define OD_ENTRY_H1A08 &OD->list[69]
 #define OD_ENTRY_H1A09 &OD->list[70]
-#define OD_ENTRY_H20C0 &OD->list[71]
-#define OD_ENTRY_H2100 &OD->list[72]
-#define OD_ENTRY_H2101 &OD->list[73]
-#define OD_ENTRY_H2102 &OD->list[74]
-#define OD_ENTRY_H2110 &OD->list[75]
-#define OD_ENTRY_H2120 &OD->list[76]
-#define OD_ENTRY_H2140 &OD->list[77]
-#define OD_ENTRY_H2180 &OD->list[78]
-#define OD_ENTRY_H2181 &OD->list[79]
-#define OD_ENTRY_H2183 &OD->list[80]
-#define OD_ENTRY_H2190 &OD->list[81]
-#define OD_ENTRY_H2191 &OD->list[82]
-#define OD_ENTRY_H2192 &OD->list[83]
-#define OD_ENTRY_H2193 &OD->list[84]
-#define OD_ENTRY_H2194 &OD->list[85]
-#define OD_ENTRY_H2195 &OD->list[86]
-#define OD_ENTRY_H21A0 &OD->list[87]
-#define OD_ENTRY_H21A1 &OD->list[88]
-#define OD_ENTRY_H21A2 &OD->list[89]
-#define OD_ENTRY_H21A3 &OD->list[90]
-#define OD_ENTRY_H21A4 &OD->list[91]
-#define OD_ENTRY_H21A5 &OD->list[92]
-#define OD_ENTRY_H21B0 &OD->list[93]
-#define OD_ENTRY_H21B1 &OD->list[94]
-#define OD_ENTRY_H21B2 &OD->list[95]
-#define OD_ENTRY_H21B3 &OD->list[96]
-#define OD_ENTRY_H21B4 &OD->list[97]
-#define OD_ENTRY_H21B5 &OD->list[98]
-#define OD_ENTRY_H21C0 &OD->list[99]
-#define OD_ENTRY_H21C1 &OD->list[100]
-#define OD_ENTRY_H21C2 &OD->list[101]
-#define OD_ENTRY_H21C3 &OD->list[102]
-#define OD_ENTRY_H21C4 &OD->list[103]
-#define OD_ENTRY_H21C5 &OD->list[104]
-#define OD_ENTRY_H2300 &OD->list[105]
-#define OD_ENTRY_H2301 &OD->list[106]
-#define OD_ENTRY_H2310 &OD->list[107]
-#define OD_ENTRY_H2311 &OD->list[108]
-#define OD_ENTRY_H2320 &OD->list[109]
-#define OD_ENTRY_H2321 &OD->list[110]
+#define OD_ENTRY_H2070 &OD->list[71]
+#define OD_ENTRY_H2080 &OD->list[72]
+#define OD_ENTRY_H2081 &OD->list[73]
+#define OD_ENTRY_H20F0 &OD->list[74]
+#define OD_ENTRY_H20F1 &OD->list[75]
+#define OD_ENTRY_H2100 &OD->list[76]
+#define OD_ENTRY_H2101 &OD->list[77]
+#define OD_ENTRY_H2102 &OD->list[78]
+#define OD_ENTRY_H2110 &OD->list[79]
+#define OD_ENTRY_H2120 &OD->list[80]
+#define OD_ENTRY_H2140 &OD->list[81]
+#define OD_ENTRY_H2180 &OD->list[82]
+#define OD_ENTRY_H2181 &OD->list[83]
+#define OD_ENTRY_H2183 &OD->list[84]
+#define OD_ENTRY_H2190 &OD->list[85]
+#define OD_ENTRY_H2191 &OD->list[86]
+#define OD_ENTRY_H2192 &OD->list[87]
+#define OD_ENTRY_H2193 &OD->list[88]
+#define OD_ENTRY_H2194 &OD->list[89]
+#define OD_ENTRY_H2195 &OD->list[90]
+#define OD_ENTRY_H21A0 &OD->list[91]
+#define OD_ENTRY_H21A1 &OD->list[92]
+#define OD_ENTRY_H21A2 &OD->list[93]
+#define OD_ENTRY_H21A3 &OD->list[94]
+#define OD_ENTRY_H21A4 &OD->list[95]
+#define OD_ENTRY_H21A5 &OD->list[96]
+#define OD_ENTRY_H21B0 &OD->list[97]
+#define OD_ENTRY_H21B1 &OD->list[98]
+#define OD_ENTRY_H21B2 &OD->list[99]
+#define OD_ENTRY_H21B3 &OD->list[100]
+#define OD_ENTRY_H21B4 &OD->list[101]
+#define OD_ENTRY_H21B5 &OD->list[102]
+#define OD_ENTRY_H21C0 &OD->list[103]
+#define OD_ENTRY_H21C1 &OD->list[104]
+#define OD_ENTRY_H21C2 &OD->list[105]
+#define OD_ENTRY_H21C3 &OD->list[106]
+#define OD_ENTRY_H21C4 &OD->list[107]
+#define OD_ENTRY_H21C5 &OD->list[108]
+#define OD_ENTRY_H2300 &OD->list[109]
+#define OD_ENTRY_H2301 &OD->list[110]
+#define OD_ENTRY_H2310 &OD->list[111]
+#define OD_ENTRY_H2311 &OD->list[112]
+#define OD_ENTRY_H2320 &OD->list[113]
+#define OD_ENTRY_H2321 &OD->list[114]
 
 
 /*******************************************************************************
@@ -869,46 +885,50 @@ extern OD_ATTR_OD OD_t *OD;
 #define OD_ENTRY_H1A07_TPDOMappingParameter &OD->list[68]
 #define OD_ENTRY_H1A08_TPDOMappingParameter &OD->list[69]
 #define OD_ENTRY_H1A09_TPDOMappingParameter &OD->list[70]
-#define OD_ENTRY_H20C0_rearBoxState &OD->list[71]
-#define OD_ENTRY_H2100_steerAngle &OD->list[72]
-#define OD_ENTRY_H2101_accelerator &OD->list[73]
-#define OD_ENTRY_H2102_break &OD->list[74]
-#define OD_ENTRY_H2110_buttons &OD->list[75]
-#define OD_ENTRY_H2120_indicators &OD->list[76]
-#define OD_ENTRY_H2140_speed &OD->list[77]
-#define OD_ENTRY_H2180_accumulatorStatus &OD->list[78]
-#define OD_ENTRY_H2181_accumulatorVoltage &OD->list[79]
-#define OD_ENTRY_H2183_accumulatorTemperature &OD->list[80]
-#define OD_ENTRY_H2190_inverterFLControlWord &OD->list[81]
-#define OD_ENTRY_H2191_inverterFLStatusWord &OD->list[82]
-#define OD_ENTRY_H2192_inverterFLTargetTorque &OD->list[83]
-#define OD_ENTRY_H2193_inverterFLTorqueDemandValue &OD->list[84]
-#define OD_ENTRY_H2194_inverterFLMotorData &OD->list[85]
-#define OD_ENTRY_H2195_inverterFL_DCBus &OD->list[86]
-#define OD_ENTRY_H21A0_inverterFRControlWord &OD->list[87]
-#define OD_ENTRY_H21A1_inverterFRStatusWord &OD->list[88]
-#define OD_ENTRY_H21A2_inverterFRTargetTorque &OD->list[89]
-#define OD_ENTRY_H21A3_inverterFRTorqueDemandValue &OD->list[90]
-#define OD_ENTRY_H21A4_inverterFRMotorData &OD->list[91]
-#define OD_ENTRY_H21A5_inverterFR_DCBus &OD->list[92]
-#define OD_ENTRY_H21B0_inverterRLControlWord &OD->list[93]
-#define OD_ENTRY_H21B1_inverterRLStatusWord &OD->list[94]
-#define OD_ENTRY_H21B2_inverterRLTargetTorque &OD->list[95]
-#define OD_ENTRY_H21B3_inverterRLTorqueDemandValue &OD->list[96]
-#define OD_ENTRY_H21B4_inverterRLMotorData &OD->list[97]
-#define OD_ENTRY_H21B5_inverterRL_DCBus &OD->list[98]
-#define OD_ENTRY_H21C0_inverterRRControlWord &OD->list[99]
-#define OD_ENTRY_H21C1_inverterRRStatusWord &OD->list[100]
-#define OD_ENTRY_H21C2_inverterRRTargetTorque &OD->list[101]
-#define OD_ENTRY_H21C3_inverterRRTorqueDemandValue &OD->list[102]
-#define OD_ENTRY_H21C4_inverterRRMotorData &OD->list[103]
-#define OD_ENTRY_H21C5_inverterRR_DCBus &OD->list[104]
-#define OD_ENTRY_H2300_wheelSpeedFL &OD->list[105]
-#define OD_ENTRY_H2301_wheelSpeedFR &OD->list[106]
-#define OD_ENTRY_H2310_suspensionF &OD->list[107]
-#define OD_ENTRY_H2311_suspensionR &OD->list[108]
-#define OD_ENTRY_H2320_IMUAcceleration &OD->list[109]
-#define OD_ENTRY_H2321_IMUGyration &OD->list[110]
+#define OD_ENTRY_H2070_power &OD->list[71]
+#define OD_ENTRY_H2080_rearBoxCommand &OD->list[72]
+#define OD_ENTRY_H2081_rearBoxControlMode &OD->list[73]
+#define OD_ENTRY_H20F0_rearBoxState &OD->list[74]
+#define OD_ENTRY_H20F1_frontBoxState &OD->list[75]
+#define OD_ENTRY_H2100_steerAngle &OD->list[76]
+#define OD_ENTRY_H2101_accelerator &OD->list[77]
+#define OD_ENTRY_H2102_break &OD->list[78]
+#define OD_ENTRY_H2110_buttons &OD->list[79]
+#define OD_ENTRY_H2120_indicators &OD->list[80]
+#define OD_ENTRY_H2140_speed &OD->list[81]
+#define OD_ENTRY_H2180_accumulatorStatus &OD->list[82]
+#define OD_ENTRY_H2181_accumulatorVoltage &OD->list[83]
+#define OD_ENTRY_H2183_accumulatorTemperature &OD->list[84]
+#define OD_ENTRY_H2190_inverterFLControlWord &OD->list[85]
+#define OD_ENTRY_H2191_inverterFLStatusWord &OD->list[86]
+#define OD_ENTRY_H2192_inverterFLTargetTorque &OD->list[87]
+#define OD_ENTRY_H2193_inverterFLTorqueDemandValue &OD->list[88]
+#define OD_ENTRY_H2194_inverterFLMotorData &OD->list[89]
+#define OD_ENTRY_H2195_inverterFL_DCBus &OD->list[90]
+#define OD_ENTRY_H21A0_inverterFRControlWord &OD->list[91]
+#define OD_ENTRY_H21A1_inverterFRStatusWord &OD->list[92]
+#define OD_ENTRY_H21A2_inverterFRTargetTorque &OD->list[93]
+#define OD_ENTRY_H21A3_inverterFRTorqueDemandValue &OD->list[94]
+#define OD_ENTRY_H21A4_inverterFRMotorData &OD->list[95]
+#define OD_ENTRY_H21A5_inverterFR_DCBus &OD->list[96]
+#define OD_ENTRY_H21B0_inverterRLControlWord &OD->list[97]
+#define OD_ENTRY_H21B1_inverterRLStatusWord &OD->list[98]
+#define OD_ENTRY_H21B2_inverterRLTargetTorque &OD->list[99]
+#define OD_ENTRY_H21B3_inverterRLTorqueDemandValue &OD->list[100]
+#define OD_ENTRY_H21B4_inverterRLMotorData &OD->list[101]
+#define OD_ENTRY_H21B5_inverterRL_DCBus &OD->list[102]
+#define OD_ENTRY_H21C0_inverterRRControlWord &OD->list[103]
+#define OD_ENTRY_H21C1_inverterRRStatusWord &OD->list[104]
+#define OD_ENTRY_H21C2_inverterRRTargetTorque &OD->list[105]
+#define OD_ENTRY_H21C3_inverterRRTorqueDemandValue &OD->list[106]
+#define OD_ENTRY_H21C4_inverterRRMotorData &OD->list[107]
+#define OD_ENTRY_H21C5_inverterRR_DCBus &OD->list[108]
+#define OD_ENTRY_H2300_wheelSpeedFL &OD->list[109]
+#define OD_ENTRY_H2301_wheelSpeedFR &OD->list[110]
+#define OD_ENTRY_H2310_suspensionF &OD->list[111]
+#define OD_ENTRY_H2311_suspensionR &OD->list[112]
+#define OD_ENTRY_H2320_IMUAcceleration &OD->list[113]
+#define OD_ENTRY_H2321_IMUGyration &OD->list[114]
 
 
 /*******************************************************************************

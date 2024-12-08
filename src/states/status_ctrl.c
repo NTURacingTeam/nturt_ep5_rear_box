@@ -15,7 +15,7 @@
 #include <nturt/err.h>
 
 // project includes
-#include "define.h"
+#include "dt-bindings/rear_box.h"
 #include "msg.h"
 #include "states.h"
 
@@ -121,13 +121,13 @@ static void status_data_chan_cb(const struct zbus_channel *chan) {
   okay = data->acc == 1;
   err_set_errors(ERR_CODE_STAT_ACC, okay);
 
-#if IS_ENABLED(FRONT_INVERTER)
+#if IS_ENABLED(CONFIG_FRONT_INVERTER)
   okay = data->inv.fl & INV_STAT_MASK == INV_OKAY_MASK;
   err_set_errors(ERR_CODE_STAT_INV_FL, okay);
 
   okay = data->inv.fr & INV_STAT_MASK == INV_OKAY_MASK;
   err_set_errors(ERR_CODE_STAT_INV_FR, okay);
-#endif  // FRONT_INVERTER
+#endif  // CONFIG_FRONT_INVERTER
 
   okay = (data->inv.rl & INV_STAT_MASK) == INV_OKAY_MASK;
   err_set_errors(ERR_CODE_STAT_INV_RL, okay);

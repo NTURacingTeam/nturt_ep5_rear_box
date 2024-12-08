@@ -1,0 +1,12 @@
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu # "Zephyr"
+
+menu "Rear Box"
+
+rsource "src/ctrl/Kconfig"
+rsource "src/msg/Kconfig"
+rsource "src/sensors/Kconfig"
+rsource "src/states/Kconfig"
+
+endmenu # "Rear Box"

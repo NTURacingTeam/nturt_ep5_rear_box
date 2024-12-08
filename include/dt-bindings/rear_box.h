@@ -1,0 +1,23 @@
+#ifndef DT_BINDINGS_REAR_BOX_H_
+#define DT_BINDINGS_REAR_BOX_H_
+
+// nturt include
+#include <nturt/dt-bindings/nturt.h>
+
+/// @brief Rear box LED numbers.
+#define LED_NUM_CANOPEN_RUN 1
+#define LED_NUM_CANOPEN_ERR 2
+#define LED_NUM_BRAKE_LIGHT 3
+#define LED_NUM_RTD_SOUND 4
+
+/// @brief Rear box input codes.
+#define INPUT_BUILTIN INPUT_KEY_0
+
+#define INPUT_APPS_MICRO (INPUT_NTURT_START + INPUT_KEY_A)
+#define INPUT_BSE_MICRO (INPUT_NTURT_START + INPUT_KEY_B)
+#define INPUT_POWER_LOW (INPUT_NTURT_START + INPUT_KEY_COFFEE)
+
+#define INPUT_APPS (INPUT_NTURT_START + INPUT_KEY_PLAY)
+#define INPUT_BSE (INPUT_NTURT_START + INPUT_KEY_PAUSE)
+
+#endif  // DT_BINDINGS_REAR_BOX_H_

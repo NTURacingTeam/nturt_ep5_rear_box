@@ -66,6 +66,9 @@ ZBUS_CHAN_DECLARE(status_data_chan);
 ZBUS_CHAN_DECLARE(inv_data_chan);
 ZBUS_CHAN_DECLARE(imu_data_chan);
 
+/* function declaration ------------------------------------------------------*/
+void msg_reset_all_nodes();
+
 /**
  * @} // Msg
  */

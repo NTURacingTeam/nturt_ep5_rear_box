@@ -21,16 +21,23 @@
 
 // project includes
 #include "ctrl.h"
-#include "define.h"
+#include "dt-bindings/rear_box.h"
 #include "msg.h"
+#include "sensors.h"
 #include "states/rtd_snd.h"
 #include "states/status_ctrl.h"
 
 LOG_MODULE_REGISTER(states);
 
 /* macro ---------------------------------------------------------------------*/
-/// @brief Size of work buffer for states update callback.
-#define STATES_WORK_BUF_SIZE 10
+#if IS_ENABLED(CONFIG_DANGER_MODE)
+#define STATE_ERROR_MASK (0)
+#else
+#define STATE_ERROR_MASK                                                   \
+  (COND_CODE_1(IS_ENABLED(CONFIG_APPS_PLAUS), (ERR_CODE_APPS_MASK), (0)) | \
+   (COND_CODE_1(IS_ENABLED(CONFIG_BSE_F), (ERR_CODE_BSE_F), (0)) |         \
+    COND_CODE_1(IS_ENABLED(CONFIG_BSE_R), (ERR_CODE_BSE_R), (0))))
+#endif  // CONFIG_DANGER_MODE
 
 /* type ----------------------------------------------------------------------*/
 struct states_update_args {
@@ -38,36 +45,37 @@ struct states_update_args {
   union {
     err_t err;
     bool button;
+
+    enum ctrl_mode mode;
   };
 };
 
 struct states {
   struct smf_ctx smf_ctx;
-  state_t state;
+  states_t states;
 
   struct {
     err_t err;
     bool apps;
     bool bse;
-    bool rtd_button;
   } cond;
-
   enum states_update_type cmd;
+
+  struct k_mutex mutex;
 
   struct status_ctrl status_ctrl;
   struct rtd_snd rtd_snd;
 };
 
 /* static function declaration -----------------------------------------------*/
-static void buttons_cb(struct input_event *evt);
+static void buttons_cb(struct input_event *evt, void *user_data);
 
 static void err_chan_cb(const struct zbus_channel *chan);
 
-static int states_update(struct states_update_args *args);
-static void states_update_work(struct k_work *work);
-
 /// @brief Initialization function for states module.
 static int init();
+
+static void states_update(struct states_update_args *args);
 
 static void root_entry(void *obj);
 static void root_run(void *obj);
@@ -101,13 +109,6 @@ static void error_run(void *obj);
 static void error_exit(void *obj);
 
 /* static varaible -----------------------------------------------------------*/
-static const struct device *dash_leds = DEVICE_DT_GET(DT_NODELABEL(dash_leds));
-
-static const struct gpio_dt_spec apps_micro =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(apps_micro), gpios);
-static const struct gpio_dt_spec bse_micro =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(bse_micro), gpios);
-
 /// @brief States state machine.
 static const struct smf_state smf_states[] = {
     [STATE_ROOT] = SMF_CREATE_STATE(root_entry, root_run, root_exit, NULL,
@@ -137,41 +138,42 @@ static struct states states = {
     .rtd_snd = RTD_SND_INITIALIZER(),
 };
 
-INPUT_CALLBACK_DEFINE(NULL, buttons_cb);
-
-ZBUS_CHAN_DEFINE(state_chan, state_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
-                 ZBUS_MSG_INIT(0));
+INPUT_CALLBACK_DEFINE(NULL, buttons_cb, NULL);
 
 ZBUS_LISTENER_DEFINE(states_err_chan_listener, err_chan_cb);
 ZBUS_CHAN_ADD_OBS(err_chan, states_err_chan_listener, 0);
 
-WORK_CTX_BUF_DEFINE(states_update_work_ctx, STATES_WORK_BUF_SIZE,
-                    states_update_work, &states, struct states_update_args);
-
-SYS_INIT(init, APPLICATION, CONFIG_NTURT_STATES_INIT_PRIORITY);
+SYS_INIT(init, APPLICATION, CONFIG_STATES_INIT_PRIORITY);
 
 /* function definition -------------------------------------------------------*/
-int states_cmd(enum states_update_type type) {
+states_t states_get_states() { return states.states; }
+
+void states_cmd(enum states_update_type cmd) {
+  __ASSERT(!k_is_in_isr(), "Cannot call states_cmd() from ISR");
+
   struct states_update_args args = {
-      .type = type,
+      .type = cmd,
   };
 
-  return states_update(&args);
+  states_update(&args);
 }
 
-int states_inv_dir(bool dir) {
-  if (states.state & BIT(STATE_RUNNING)) {
-    LOG_ERR("Cannot change inverter direction while running");
-
-    return -EINVAL;
-  }
+void states_inv_dir(bool dir) {
+  __ASSERT(!(states.states & BIT(STATE_RUNNING)),
+           "Cannot change inverter direction while running");
 
   status_inv_dir(&states.status_ctrl, dir);
-  return 0;
+}
+
+void states_inv_reset() {
+  __ASSERT(!(states.states & BIT(STATE_RUNNING)),
+           "Cannot reset inverter fault while running");
+
+  status_inv_fault_reset(&states.status_ctrl);
 }
 
 /* static function definition ------------------------------------------------*/
-static void buttons_cb(struct input_event *evt) {
+static void buttons_cb(struct input_event *evt, void *user_data) {
   if (evt->type != INPUT_EV_KEY) {
     return;
   }
@@ -179,25 +181,13 @@ static void buttons_cb(struct input_event *evt) {
   struct states_update_args args;
 
   switch (evt->code) {
-    case INPUT_KEY_APPS:
+    case INPUT_APPS:
       args.type = STATES_COND_APPS;
       break;
 
-    case INPUT_KEY_BSE:
+    case INPUT_BSE:
       args.type = STATES_COND_BSE;
       break;
-
-    case INPUT_KEY_RTD:
-      args.type = STATES_COND_RTD_BUTTON;
-      break;
-
-    case INPUT_KEY_CTRL_MODE:
-      if (evt->value) {
-        states_cmd(STATES_CMD_DISABLE);
-        states_cmd(STATES_CMD_MODE_CHANGE);
-      }
-
-      return;
 
     default:
       return;
@@ -218,139 +208,107 @@ static void err_chan_cb(const struct zbus_channel *chan) {
   states_update(&args);
 }
 
-static int states_update(struct states_update_args *args) {
-  struct work_ctx *ctx =
-      work_ctx_alloc(states_update_work_ctx, STATES_WORK_BUF_SIZE);
-  if (ctx != NULL) {
-    memcpy(ctx->args, args, sizeof(*args));
-    k_work_submit(&ctx->work);
+static int init() {
+  // err module initializes later than states module, so initial errors will be
+  // set by err_chan_cb().
 
-    return 0;
-  } else {
-    LOG_ERR("States update queue full, dropping states update request: %d",
-            args->type);
+  k_mutex_init(&states.mutex);
+  states.cond.apps = sensors_apps_engaged();
+  states.cond.bse = sensors_bse_engaged();
 
-    return -ENOMEM;
-  }
+  smf_set_initial(&states.smf_ctx, &smf_states[STATE_ROOT]);
+  smf_run_state(&states.smf_ctx);
+
+  return 0;
 }
 
-static void states_update_work(struct k_work *work) {
-  struct states *states = WORK_CTX(work);
-  struct states_update_args *args = WORK_CTX_ARGS(work);
+static void states_update(struct states_update_args *args) {
+  // wait forever since all underlying functions are non-blocking
+  k_mutex_lock(&states.mutex, K_FOREVER);
 
   switch (args->type) {
     case STATES_COND_ERR:
-      states->cond.err = args->err;
+      states.cond.err = args->err;
       break;
 
     case STATES_COND_APPS:
-      states->cond.apps = args->button;
+      states.cond.apps = args->button;
       break;
 
     case STATES_COND_BSE:
-      states->cond.bse = args->button;
-      break;
-
-    case STATES_COND_RTD_BUTTON:
-      states->cond.rtd_button = args->button;
+      states.cond.bse = args->button;
       break;
 
     case STATES_CMD_START ... STATES_CMD_END:
-      states->cmd = args->type;
+      states.cmd = args->type;
       break;
 
     default:
       return;
   }
 
-  smf_run_state(&states->smf_ctx);
-  zbus_chan_pub(&state_chan, &states->state, K_MSEC(5));
-}
-
-static int init() {
-  // err module initializes later than states module, so initial errors will be
-  // set by err_chan_cb().
-
-  states.cond.apps = gpio_pin_get_dt(&apps_micro);
-  states.cond.bse = gpio_pin_get_dt(&bse_micro);
-
-  smf_set_initial(&states.smf_ctx, &smf_states[STATE_ROOT]);
   smf_run_state(&states.smf_ctx);
-  zbus_chan_pub(&state_chan, &states.state, K_MSEC(5));
 
-  return 0;
+  k_mutex_unlock(&states.mutex);
 }
 
 static void root_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_ROOT);
+  states->states |= BIT(STATE_ROOT);
 }
 static void root_run(void *obj) {
   struct states *states = obj;
-
-  switch (states->cmd) {
-    case STATES_CMD_FAULT_RESET:
-      status_inv_fault_reset(&states->status_ctrl);
-      break;
-
-    case STATES_CMD_MODE_CHANGE:
-      ctrl_mode_next();
-      break;
-
-    default:
-      break;
-  }
 
   states->cmd = 0;
 }
 static void root_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_ROOT);
+  states->states &= ~BIT(STATE_ROOT);
 }
 
 static void err_free_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_ERR_FREE);
+  states->states |= BIT(STATE_ERR_FREE);
 }
 static void err_free_run(void *obj) {
   struct states *states = obj;
 
-  if (states->cond.err & ERR_CODE_FATAL_MASK) {
+  if (states->cond.err & STATE_ERROR_MASK) {
     smf_set_state(&states->smf_ctx, &smf_states[STATE_ERROR]);
   }
 }
 static void err_free_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_ERR_FREE);
+  states->states &= ~BIT(STATE_ERR_FREE);
 }
 
 static void ready_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_READY);
+  states->states |= BIT(STATE_READY);
 
   if (states->cond.bse) {
     smf_set_state(&states->smf_ctx, &smf_states[STATE_RTD_STEADY]);
   } else {
     smf_set_state(&states->smf_ctx, &smf_states[STATE_RTD_BLINK]);
   }
+
+  LOG_INF("Enter ready state");
 }
 static void ready_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_READY);
+  states->states &= ~BIT(STATE_READY);
 }
 
 static void rtd_blink_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_RTD_BLINK);
-
-  led_blink(dash_leds, LED_NUM_RTD, 0, 0);
+  states->states |= BIT(STATE_RTD_BLINK);
 }
 static void rtd_blink_run(void *obj) {
   struct states *states = obj;
@@ -362,42 +320,33 @@ static void rtd_blink_run(void *obj) {
 static void rtd_blink_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_RTD_BLINK);
-
-  led_off(dash_leds, LED_NUM_RTD);
+  states->states &= ~BIT(STATE_RTD_BLINK);
 }
 
 static void rtd_steady_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_RTD_STEADY);
-
-  // reset rtd button state to avoid immediate transition even if button is
-  // pressed
-  states->cond.rtd_button = false;
-  led_on(dash_leds, LED_NUM_RTD);
+  states->states |= BIT(STATE_RTD_STEADY);
 }
 static void rtd_steady_run(void *obj) {
   struct states *states = obj;
 
   if (states->cond.apps || !states->cond.bse) {
     smf_set_state(&states->smf_ctx, &smf_states[STATE_RTD_BLINK]);
-  } else if (states->cond.rtd_button) {
+  } else if (states->cmd == STATES_CMD_RTD) {
     smf_set_state(&states->smf_ctx, &smf_states[STATE_RTD_SOUND]);
   }
 }
 static void rtd_steady_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_RTD_STEADY);
-
-  led_off(dash_leds, LED_NUM_RTD);
+  states->states &= ~BIT(STATE_RTD_STEADY);
 }
 
 static void rtd_sound_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_RTD_SOUND);
+  states->states |= BIT(STATE_RTD_SOUND);
 
   rtd_snd_play(&states->rtd_snd);
 }
@@ -415,7 +364,7 @@ static void rtd_sound_run(void *obj) {
 static void rtd_sound_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_RTD_SOUND);
+  states->states &= ~BIT(STATE_RTD_SOUND);
 
   rtd_snd_stop(&states->rtd_snd);
 }
@@ -423,11 +372,12 @@ static void rtd_sound_exit(void *obj) {
 static void running_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_RUNNING);
+  states->states |= BIT(STATE_RUNNING);
 
-  led_on(dash_leds, LED_NUM_RUNNING);
   status_enable(&states->status_ctrl, true);
   ctrl_enable();
+
+  LOG_INF("Enter running state");
 }
 static void running_run(void *obj) {
   struct states *states = obj;
@@ -441,9 +391,8 @@ static void running_run(void *obj) {
 static void running_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_RUNNING);
+  states->states &= ~BIT(STATE_RUNNING);
 
-  led_off(dash_leds, LED_NUM_RUNNING);
   status_enable(&states->status_ctrl, false);
   ctrl_disable();
 }
@@ -451,9 +400,9 @@ static void running_exit(void *obj) {
 static void error_entry(void *obj) {
   struct states *states = obj;
 
-  states->state |= BIT(STATE_ERROR);
+  states->states |= BIT(STATE_ERROR);
 
-  led_on(dash_leds, LED_NUM_ERR);
+  LOG_ERR("Enter error state");
 }
 static void error_run(void *obj) {
   struct states *states = obj;
@@ -465,7 +414,5 @@ static void error_run(void *obj) {
 static void error_exit(void *obj) {
   struct states *states = obj;
 
-  states->state &= ~BIT(STATE_ERROR);
-
-  led_off(dash_leds, LED_NUM_ERR);
+  states->states &= ~BIT(STATE_ERROR);
 }

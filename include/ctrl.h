@@ -4,15 +4,10 @@
 // zephyr includes
 #include <zephyr/zbus/zbus.h>
 
+// nturt includes
+#include <nturt/rear_box/ctrl.h>
+
 /* types ---------------------------------------------------------------------*/
-enum ctrl_mode {
-  CTRL_MODE_LOW = 0,
-  CTRL_MODE_HIGH,
-  CTRL_MODE_REVERSED,
-
-  NUM_CTRL_MODES,
-};
-
 struct ctrl_data {
   float speed;
 
@@ -22,13 +17,14 @@ struct ctrl_data {
 };
 
 /* function definition -------------------------------------------------------*/
-ZBUS_CHAN_DECLARE(ctrl_mode_chan);
 ZBUS_CHAN_DECLARE(ctrl_data_chan);
 
 /* function declaration ------------------------------------------------------*/
-int ctrl_mode_next();
+enum ctrl_mode ctrl_mode_get();
 
-int ctrl_enable();
-int ctrl_disable();
+void ctrl_mode_set(enum ctrl_mode mode);
+
+void ctrl_enable();
+void ctrl_disable();
 
 #endif  // CTRL_H_

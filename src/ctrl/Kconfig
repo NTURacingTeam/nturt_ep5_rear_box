@@ -1,0 +1,9 @@
+menu "Control"
+
+config NTURT_CTRL_THREAD_PRIORITY
+    int "NTURT control module thread priority"
+    default 1
+    help
+      NTURT common library control module thread priority.
+
+endmenu # "Control"

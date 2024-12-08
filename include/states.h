@@ -7,6 +7,9 @@
 // zephyr includes
 #include <zephyr/zbus/zbus.h>
 
+// nturt includes
+#include <nturt/rear_box/states.h>
+
 /**
  * @addtogroup States States
  * @brief
@@ -38,37 +41,26 @@
  */
 
 /* macro ---------------------------------------------------------------------*/
-#define STATES_CMD_START STATES_CMD_RUN
-#define STATES_CMD_END STATES_CMD_MODE_CHANGE
+#define STATES_CMD_START (__STATES_CMD_START + 1)
+#define STATES_CMD_END (__STATES_CMD_END - 1)
 
 /* type ----------------------------------------------------------------------*/
-typedef uint16_t state_t;
-
-/// @brief States state machine states.
-enum states_state {
-  STATE_ROOT = 0,
-  STATE_ERR_FREE,
-  STATE_READY,
-  STATE_RTD_BLINK,
-  STATE_RTD_STEADY,
-  STATE_RTD_SOUND,
-  STATE_RUNNING,
-  STATE_ERROR,
-
-  NUM_STATES,
-};
-
 enum states_update_type {
-  STATES_COND_NONE,
+  STATES_UPDATE_NONE = 0,
+
   STATES_COND_ERR,
   STATES_COND_APPS,
   STATES_COND_BSE,
-  STATES_COND_RTD_BUTTON,
 
+  __STATES_CMD_START,
+
+  STATES_CMD_RTD,
   STATES_CMD_RUN,
   STATES_CMD_DISABLE,
-  STATES_CMD_FAULT_RESET,
-  STATES_CMD_MODE_CHANGE,
+
+  __STATES_CMD_END,
+
+  NUM_STATES_UPDATE_TYPE,
 };
 
 struct status_cmd {
@@ -81,17 +73,20 @@ struct status_cmd {
 };
 
 /* exported variable ---------------------------------------------------------*/
-ZBUS_CHAN_DECLARE(state_chan);
 ZBUS_CHAN_DECLARE(status_cmd_chan);
 
 /* function declaration ------------------------------------------------------*/
-int states_cmd(enum states_update_type type);
+states_t states_get_states();
+
+void states_cmd(enum states_update_type cmd);
 
 /**
  * @brief Set the inverter direction.
  *
  * @param dir True for forward, false for reverse.
  */
-int states_inv_dir(bool dir);
+void states_inv_dir(bool dir);
+
+void states_inv_reset();
 
 #endif  // STATES_H_

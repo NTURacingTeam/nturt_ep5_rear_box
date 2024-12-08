@@ -1,0 +1,16 @@
+menu "Sensors"
+
+rsource "Kconfig.pedals"
+
+config SENSORS_TOL_THRES
+    int ""
+    default 50
+
+config SNESORS_TOL_WEIGHT
+    int ""
+    default 10
+
+config SENSORS_POWER
+    bool ""
+
+endmenu # "Sensors"

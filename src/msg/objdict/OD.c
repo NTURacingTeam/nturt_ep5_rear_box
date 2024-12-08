@@ -33,11 +33,23 @@ OD_ATTR_RAM OD_RAM_t OD_RAM = {
     .x1010_storeParameters = {1, 1, 1, 1},
     .x1011_restoreDefaultParameters_sub0 = 0x04,
     .x1011_restoreDefaultParameters = {1, 1, 1, 1},
-    .x20C0_rearBoxState = {
+    .x2070_power = {
         .highestSub_indexSupported = 0x03,
+        .V_24 = 0x00,
+        .I_24 = 0x00,
+        .I_5 = 0x00
+    },
+    .x2080_rearBoxCommand = 0x00,
+    .x2081_rearBoxControlMode = 0x00,
+    .x20F0_rearBoxState = {
+        .highestSub_indexSupported = 0x02,
         .states = 0x0000,
-        .errors = 0x00000000,
-        .controlMode = 0x00
+        .errors = 0x00000000
+    },
+    .x20F1_frontBoxState = {
+        .highestSub_indexSupported = 0x02,
+        .states = 0x0000,
+        .errors = 0x00000000
     },
     .x2100_steerAngle = 0,
     .x2101_accelerator = {
@@ -135,8 +147,8 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
     .x1012_COB_IDTimeStampObject = 0x80000100,
     .x1014_COB_ID_EMCY = 0x00000080,
     .x1015_inhibitTimeEMCY = 0x0000,
-    .x1016_consumerHeartbeatTime_sub0 = 0x04,
-    .x1016_consumerHeartbeatTime = {131572, 1049076, 1245684, 1311220},
+    .x1016_consumerHeartbeatTime_sub0 = 0x01,
+    .x1016_consumerHeartbeatTime = {131572},
     .x1017_producerHeartbeatTime = 0x0064,
     .x1019_synchronousCounterOverflowValue = 0x00,
     .x1200_SDOServerParameter = {
@@ -443,7 +455,7 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .COB_IDUsedByTPDO = 0x40000380,
         .transmissionType = 0xFE,
         .inhibitTime = 0x0000,
-        .eventTimer = 0x0064,
+        .eventTimer = 0x0000,
         .SYNCStartValue = 0x00
     },
     .x1803_TPDOCommunicationParameter = {
@@ -456,16 +468,16 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
     },
     .x1804_TPDOCommunicationParameter = {
         .highestSub_indexSupported = 0x06,
-        .COB_IDUsedByTPDO = 0x40000202,
+        .COB_IDUsedByTPDO = 0xC0000000,
         .transmissionType = 0xFE,
         .inhibitTime = 0x0000,
-        .eventTimer = 0x0064,
+        .eventTimer = 0x0000,
         .SYNCStartValue = 0x00
     },
     .x1805_TPDOCommunicationParameter = {
         .highestSub_indexSupported = 0x06,
-        .COB_IDUsedByTPDO = 0x80000192,
-        .transmissionType = 0xFF,
+        .COB_IDUsedByTPDO = 0xC0000000,
+        .transmissionType = 0xFE,
         .inhibitTime = 0x0000,
         .eventTimer = 0x0000,
         .SYNCStartValue = 0x00
@@ -525,11 +537,11 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .applicationObject8 = 0x00000000
     },
     .x1A02_TPDOMappingParameter = {
-        .numberOfMappedApplicationObjectsInPDO = 0x03,
-        .applicationObject1 = 0x20C00110,
-        .applicationObject2 = 0x20C00220,
-        .applicationObject3 = 0x20C00308,
-        .applicationObject4 = 0x00000000,
+        .numberOfMappedApplicationObjectsInPDO = 0x04,
+        .applicationObject1 = 0x20700108,
+        .applicationObject2 = 0x20700208,
+        .applicationObject3 = 0x20700308,
+        .applicationObject4 = 0x20F00110,
         .applicationObject5 = 0x00000000,
         .applicationObject6 = 0x00000000,
         .applicationObject7 = 0x00000000,
@@ -547,8 +559,8 @@ OD_ATTR_PERSIST_COMM OD_PERSIST_COMM_t OD_PERSIST_COMM = {
         .applicationObject8 = 0x00000000
     },
     .x1A04_TPDOMappingParameter = {
-        .numberOfMappedApplicationObjectsInPDO = 0x01,
-        .applicationObject1 = 0x21200008,
+        .numberOfMappedApplicationObjectsInPDO = 0x00,
+        .applicationObject1 = 0x00000000,
         .applicationObject2 = 0x00000000,
         .applicationObject3 = 0x00000000,
         .applicationObject4 = 0x00000000,
@@ -691,7 +703,11 @@ typedef struct {
     OD_obj_record_t o_1A07_TPDOMappingParameter[9];
     OD_obj_record_t o_1A08_TPDOMappingParameter[9];
     OD_obj_record_t o_1A09_TPDOMappingParameter[9];
-    OD_obj_record_t o_20C0_rearBoxState[4];
+    OD_obj_record_t o_2070_power[4];
+    OD_obj_var_t o_2080_rearBoxCommand;
+    OD_obj_var_t o_2081_rearBoxControlMode;
+    OD_obj_record_t o_20F0_rearBoxState[3];
+    OD_obj_record_t o_20F1_frontBoxState[3];
     OD_obj_var_t o_2100_steerAngle;
     OD_obj_record_t o_2101_accelerator[5];
     OD_obj_record_t o_2102_break[5];
@@ -3129,30 +3145,80 @@ static CO_PROGMEM ODObjs_t ODObjs = {
             .dataLength = 4
         }
     },
-    .o_20C0_rearBoxState = {
+    .o_2070_power = {
         {
-            .dataOrig = &OD_RAM.x20C0_rearBoxState.highestSub_indexSupported,
+            .dataOrig = &OD_RAM.x2070_power.highestSub_indexSupported,
             .subIndex = 0,
             .attribute = ODA_SDO_R,
             .dataLength = 1
         },
         {
-            .dataOrig = &OD_RAM.x20C0_rearBoxState.states,
+            .dataOrig = &OD_RAM.x2070_power.V_24,
+            .subIndex = 1,
+            .attribute = ODA_SDO_R | ODA_TRPDO,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_RAM.x2070_power.I_24,
+            .subIndex = 2,
+            .attribute = ODA_SDO_R | ODA_TRPDO,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_RAM.x2070_power.I_5,
+            .subIndex = 3,
+            .attribute = ODA_SDO_R | ODA_TRPDO,
+            .dataLength = 1
+        }
+    },
+    .o_2080_rearBoxCommand = {
+        .dataOrig = &OD_RAM.x2080_rearBoxCommand,
+        .attribute = ODA_SDO_RW,
+        .dataLength = 1
+    },
+    .o_2081_rearBoxControlMode = {
+        .dataOrig = &OD_RAM.x2081_rearBoxControlMode,
+        .attribute = ODA_SDO_RW,
+        .dataLength = 1
+    },
+    .o_20F0_rearBoxState = {
+        {
+            .dataOrig = &OD_RAM.x20F0_rearBoxState.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
+        },
+        {
+            .dataOrig = &OD_RAM.x20F0_rearBoxState.states,
             .subIndex = 1,
             .attribute = ODA_SDO_R | ODA_TRPDO | ODA_MB,
             .dataLength = 2
         },
         {
-            .dataOrig = &OD_RAM.x20C0_rearBoxState.errors,
+            .dataOrig = &OD_RAM.x20F0_rearBoxState.errors,
             .subIndex = 2,
             .attribute = ODA_SDO_R | ODA_TRPDO | ODA_MB,
             .dataLength = 4
+        }
+    },
+    .o_20F1_frontBoxState = {
+        {
+            .dataOrig = &OD_RAM.x20F1_frontBoxState.highestSub_indexSupported,
+            .subIndex = 0,
+            .attribute = ODA_SDO_R,
+            .dataLength = 1
         },
         {
-            .dataOrig = &OD_RAM.x20C0_rearBoxState.controlMode,
-            .subIndex = 3,
-            .attribute = ODA_SDO_R | ODA_TRPDO,
-            .dataLength = 1
+            .dataOrig = &OD_RAM.x20F1_frontBoxState.states,
+            .subIndex = 1,
+            .attribute = ODA_SDO_R | ODA_TRPDO | ODA_MB,
+            .dataLength = 2
+        },
+        {
+            .dataOrig = &OD_RAM.x20F1_frontBoxState.errors,
+            .subIndex = 2,
+            .attribute = ODA_SDO_R | ODA_TRPDO | ODA_MB,
+            .dataLength = 4
         }
     },
     .o_2100_steerAngle = {
@@ -3557,7 +3623,7 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x1012, 0x01, ODT_VAR, &ODObjs.o_1012_COB_IDTimeStampObject, NULL},
     {0x1014, 0x01, ODT_VAR, &ODObjs.o_1014_COB_ID_EMCY, NULL},
     {0x1015, 0x01, ODT_VAR, &ODObjs.o_1015_inhibitTimeEMCY, NULL},
-    {0x1016, 0x05, ODT_ARR, &ODObjs.o_1016_consumerHeartbeatTime, NULL},
+    {0x1016, 0x02, ODT_ARR, &ODObjs.o_1016_consumerHeartbeatTime, NULL},
     {0x1017, 0x01, ODT_VAR, &ODObjs.o_1017_producerHeartbeatTime, NULL},
     {0x1019, 0x01, ODT_VAR, &ODObjs.o_1019_synchronousCounterOverflowValue, NULL},
     {0x1200, 0x03, ODT_REC, &ODObjs.o_1200_SDOServerParameter, NULL},
@@ -3614,7 +3680,11 @@ static OD_ATTR_OD OD_entry_t ODList[] = {
     {0x1A07, 0x09, ODT_REC, &ODObjs.o_1A07_TPDOMappingParameter, NULL},
     {0x1A08, 0x09, ODT_REC, &ODObjs.o_1A08_TPDOMappingParameter, NULL},
     {0x1A09, 0x09, ODT_REC, &ODObjs.o_1A09_TPDOMappingParameter, NULL},
-    {0x20C0, 0x04, ODT_REC, &ODObjs.o_20C0_rearBoxState, NULL},
+    {0x2070, 0x04, ODT_REC, &ODObjs.o_2070_power, NULL},
+    {0x2080, 0x01, ODT_VAR, &ODObjs.o_2080_rearBoxCommand, NULL},
+    {0x2081, 0x01, ODT_VAR, &ODObjs.o_2081_rearBoxControlMode, NULL},
+    {0x20F0, 0x03, ODT_REC, &ODObjs.o_20F0_rearBoxState, NULL},
+    {0x20F1, 0x03, ODT_REC, &ODObjs.o_20F1_frontBoxState, NULL},
     {0x2100, 0x01, ODT_VAR, &ODObjs.o_2100_steerAngle, NULL},
     {0x2101, 0x05, ODT_REC, &ODObjs.o_2101_accelerator, NULL},
     {0x2102, 0x05, ODT_REC, &ODObjs.o_2102_break, NULL},

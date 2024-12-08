@@ -1,0 +1,12 @@
+menu "States"
+
+config STATES_INIT_PRIORITY
+    int "NTURT states module init priority"
+    default 50
+    help
+      NTURT common library states module init priority.
+
+config DANGER_MODE
+    bool "Allows RTD unconditionally"
+
+endmenu # "States"

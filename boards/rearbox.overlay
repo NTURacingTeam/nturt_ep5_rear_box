@@ -1,0 +1,238 @@
+#include "dt-bindings/rear_box.h"
+
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart0;
+        zephyr,shell-uart = &cdc_acm_uart0;
+        nturt,rtc = &rtc;
+    };
+
+    aliases {
+        canopen-green-led = &canopen_run_led;
+        canopen-red-led = &canopen_err_led;
+    };
+
+    leds: leds {
+        compatible = "gpio-leds";
+
+        place-holder {
+            gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+            status = "disabled";
+        };
+
+        canopen_run_led: canopen-run-led {
+            gpios = <&gpiod 15 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        };
+
+        canopen_err_led: canopen-err-led {
+            gpios = <&gpiod 14 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        };
+
+        brake_light: brake-light {
+            gpios = <&gpioa 2 GPIO_ACTIVE_HIGH>;
+        };
+
+        rtd_sound: rtd-sound {
+            gpios = <&gpioa 3 GPIO_ACTIVE_HIGH>;
+        };
+    };
+
+    dash_leds: dash-leds {
+        compatible = "nturt,dash-leds";
+    };
+
+    buttons: buttons {
+        compatible = "gpio-keys";
+        debounce-interval-ms = <20>;
+
+        apps_micro: apps-micro {
+            gpios = <&gpioe 14 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+            zephyr,code = <INPUT_APPS_MICRO>;
+        };
+
+        bse_micro: bse-micro {
+            gpios = <&gpioe 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+            zephyr,code = <INPUT_BSE_MICRO>;
+        };
+
+        v_24_low: v-24-low {
+            gpios = <&gpioe 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+            zephyr,code = <INPUT_POWER_LOW>;
+        };
+
+    };
+
+    bse_f: bse-f {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 7>;
+        full-scale = <1000>;
+        shunt-resistor = <120000>;
+        tolerance = <10>;
+    };
+
+    bse_r: bse-r {
+        compatible = "ssi,p51-curr";
+        io-channels = <&adc1 3>;
+        full-scale = <1000>;
+        shunt-resistor = <120000>;
+        tolerance = <10>;
+    };
+
+    susp_dive_r: susp-dive-r {
+        compatible = "res,zx";
+        io-channels = <&adc1 9>;
+        stroke = <50>;
+    };
+
+    susp_roll_r: susp-roll-r {
+        compatible = "res,zx";
+        io-channels = <&adc1 5>;
+        stroke = <50>;
+    };
+
+    v_24: v-24 {
+        compatible = "voltage-divider";
+        io-channels = <&adc1 1>;
+        full-ohms = <(47000 + 5600)>;
+        output-ohms = <5600>;
+    };
+
+    i_24: i-24 {
+        compatible = "current-sense-amplifier";
+        io-channels = <&adc1 4>;
+        sense-resistor-milli-ohms = <5>;
+        sense-gain-mult = <100>;
+    };
+
+    i_5: i-5 {
+        compatible = "current-sense-amplifier";
+        io-channels = <&adc1 0>;
+        sense-resistor-milli-ohms = <10>;
+        sense-gain-mult = <100>;
+    };
+
+    error_disp: error-disp {
+        compatible = "gpio-seg-display";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        decimal-point;
+        columns = <2>;
+        rows = <1>;
+
+        seg-display@0 {
+            reg = <0>;
+            segment-gpios = <&ex_gpio1 0 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 1 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 2 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 3 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 4 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 5 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 6 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio1 7 GPIO_ACTIVE_HIGH>;
+        };
+
+        seg-display@1 {
+            reg = <1>;
+            segment-gpios = <&ex_gpio0 0 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 1 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 2 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 3 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 4 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 5 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 6 GPIO_ACTIVE_HIGH>,
+                            <&ex_gpio0 7 GPIO_ACTIVE_HIGH>;
+        };
+    };
+};
+
+&gpdma1 {
+    status = "okay";
+};
+
+&adc1 {
+    channel@0 {
+        zephyr,oversampling = <4>;
+    };
+
+    channel@1 {
+        zephyr,oversampling = <4>;
+    };
+
+    channel@4 {
+        zephyr,oversampling = <4>;
+    };
+};
+
+&usart2 {
+    dmas = <&gpdma1 0 23 STM32_DMA_PERIPH_RX>,
+           <&gpdma1 1 24 STM32_DMA_PERIPH_TX>;
+    dma-names = "rx", "tx";
+
+    // gnss0: gnss0 {
+    // 		compatible = "gnss-nmea-generic";
+    // };
+};
+
+&uart4 {
+    apps1: apps1 {
+        compatible = "cui,amt21";
+        addr = <0x54>;
+    };
+
+    steer: steer {
+        compatible = "cui,amt21";
+        addr = <0x50>;
+    };
+};
+
+&uart5 {
+    apps2: apps2 {
+        compatible = "cui,amt21";
+        addr = <0x54>;
+    };
+};
+
+&i2c1 {
+    imu: imu@6a {
+        compatible = "st,lsm6dso";
+        reg = <0x6a>;
+        accel-range = <2>; // 4g
+        accel-odr = <4>; // 104Hz
+        gyro-range = <0>; // 250dps
+        gyro-odr = <4>; // 104Hz
+    };
+};
+
+&spi4 {
+    dmas = <&gpdma1 2 47 STM32_DMA_PERIPH_RX>,
+           <&gpdma1 3 48 STM32_DMA_PERIPH_TX>;
+    dma-names = "rx", "tx";
+
+    74hc595@0 {
+        compatible = "diodes,74hc595";
+        #address-cells = <1>;
+        #size-cells = <0>;
+        reg = <0>;
+        spi-max-frequency = <5000000>;
+
+        ex_gpio0: ex-gpio@0 {
+            reg = <0>;
+            gpio-controller;
+            ngpios = <8>;
+            #gpio-cells = <2>;
+        };
+
+        ex_gpio1: ex-gpio@1 {
+            reg = <1>;
+            gpio-controller;
+            ngpios = <8>;
+            #gpio-cells = <2>;
+        };
+    };
+};
+
+&zephyr_udc0 {
+    cdc_acm_uart0: cdc-acm-uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
